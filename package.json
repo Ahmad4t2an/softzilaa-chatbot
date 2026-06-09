@@ -1,0 +1,10 @@
+{
+  "name": "softzilaa-chatbot",
+  "version": "1.0.0",
+  "description": "SoftZilaa AI Sales Chatbot",
+  "main": "api/chat.js",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {}
+}

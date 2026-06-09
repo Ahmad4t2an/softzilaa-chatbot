@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SoftZilaa Chat</title>
+<style>
+  #sz-chat-widget {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  #sz-toggle-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    transition: transform 0.2s;
+  }
+  #sz-toggle-btn:hover { transform: scale(1.1); }
+  #sz-toggle-btn svg { width: 28px; height: 28px; fill: white; }
+  #sz-chat-box {
+    width: 360px;
+    height: 520px;
+    background: #0f0f13;
+    border-radius: 16px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    margin-bottom: 12px;
+    border: 1px solid rgba(108,99,255,0.3);
+  }
+  #sz-chat-box.open { display: flex; }
+  #sz-header {
+    padding: 14px 16px;
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(108,99,255,0.2);
+  }
+  .sz-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #0f0f13;
+    border: 2px solid #6c63ff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; color: #6c63ff;
+  }
+  .sz-hinfo .sz-name { font-size: 14px; font-weight: 600; color: #fff; }
+  .sz-hinfo .sz-status { font-size: 11px; color: #6c63ff; }
+  #sz-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #0f0f13;
+  }
+  #sz-messages::-webkit-scrollbar { width: 3px; }
+  #sz-messages::-webkit-scrollbar-thumb { background: #6c63ff44; border-radius: 3px; }
+  .sz-msg { display: flex; flex-direction: column; max-width: 85%; }
+  .sz-msg.bot { align-self: flex-start; }
+  .sz-msg.user { align-self: flex-end; }
+  .sz-bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .bot .sz-bubble {
+    background: #1e1e2e;
+    color: #e2e8f0;
+    border: 1px solid rgba(108,99,255,0.2);
+    border-radius: 4px 16px 16px 16px;
+  }
+  .user .sz-bubble {
+    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    color: #fff;
+    border-radius: 16px 16px 4px 16px;
+  }
+  .sz-ts { font-size: 10px; color: #555; margin-top: 3px; }
+  .bot .sz-ts { align-self: flex-start; }
+  .user .sz-ts { align-self: flex-end; }
+  .sz-quick-btns { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .sz-qbtn {
+    font-size: 11.5px; padding: 5px 11px;
+    border: 1px solid #6c63ff;
+    border-radius: 20px; cursor: pointer;
+    color: #6c63ff; background: transparent;
+    transition: all 0.15s;
+  }
+  .sz-qbtn:hover { background: #6c63ff; color: #fff; }
+  #sz-input-area {
+    display: flex; gap: 8px; padding: 10px 12px;
+    background: #1a1a2e;
+    border-top: 1px solid rgba(108,99,255,0.2);
+  }
+  #sz-input {
+    flex: 1; padding: 9px 13px; border-radius: 24px; font-size: 13px;
+    border: 1px solid rgba(108,99,255,0.3);
+    background: #0f0f13; color: #e2e8f0; outline: none;
+  }
+  #sz-input:focus { border-color: #6c63ff; }
+  #sz-send {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  #sz-send svg { width: 16px; height: 16px; fill: white; }
+  .sz-typing span {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: #6c63ff; margin: 0 2px;
+    animation: szBounce 1.2s infinite;
+  }
+  .sz-typing span:nth-child(2) { animation-delay: 0.2s; }
+  .sz-typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes szBounce {
+    0%,60%,100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); }
+  }
+  .sz-action-btns { display: flex; gap: 6px; margin-top: 7px; }
+  .sz-action-btn {
+    flex: 1; padding: 8px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; transition: opacity 0.15s;
+  }
+  .sz-wa { background: #25D366; color: #fff; }
+  .sz-call { background: #6c63ff; color: #fff; }
+  .sz-action-btn:hover { opacity: 0.85; }
+  #sz-notification {
+    position: absolute;
+    top: -5px; right: -5px;
+    width: 18px; height: 18px;
+    background: #ef4444;
+    border-radius: 50%;
+    font-size: 10px;
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div id="sz-chat-widget">
+  <div id="sz-chat-box">
+    <div id="sz-header">
+      <div class="sz-avatar">S</div>
+      <div class="sz-hinfo">
+        <div class="sz-name">SoftZilaa Assistant</div>
+        <div class="sz-status">● Online — AI Sales Agent</div>
+      </div>
+    </div>
+    <div id="sz-messages"></div>
+    <div id="sz-input-area">
+      <input id="sz-input" type="text" placeholder="Type your message..." />
+      <button id="sz-send">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div style="position:relative; display:inline-block;">
+    <button id="sz-toggle-btn">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    </button>
+    <div id="sz-notification">1</div>
+  </div>
+</div>
+
+<script>
+  const GROQ_API_URL = "/api/chat";
+
+  let history = [];
+  let chatOpened = false;
+
+  const toggle = document.getElementById('sz-toggle-btn');
+  const box = document.getElementById('sz-chat-box');
+  const notif = document.getElementById('sz-notification');
+
+  toggle.onclick = () => {
+    box.classList.toggle('open');
+    notif.style.display = 'none';
+    if (!chatOpened) {
+      chatOpened = true;
+      setTimeout(() => startChat(), 300);
+    }
+  };
+
+  function getTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function scrollBottom() {
+    const m = document.getElementById('sz-messages');
+    m.scrollTop = m.scrollHeight;
+  }
+
+  function showTyping() {
+    const m = document.getElementById('sz-messages');
+    const d = document.createElement('div');
+    d.className = 'sz-msg bot'; d.id = 'sz-typing';
+    d.innerHTML = `<div class="sz-bubble sz-typing"><span></span><span></span><span></span></div>`;
+    m.appendChild(d); scrollBottom();
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('sz-typing');
+    if (t) t.remove();
+  }
+
+  function addMessage(text, sender, quickReplies = [], showActions = false) {
+    removeTyping();
+    const m = document.getElementById('sz-messages');
+    const d = document.createElement('div');
+    d.className = `sz-msg ${sender}`;
+    let html = `<div class="sz-bubble">${text}</div><div class="sz-ts">${getTime()}</div>`;
+    if (quickReplies.length) {
+      html += `<div class="sz-quick-btns">${quickReplies.map(r =>
+        `<button class="sz-qbtn" onclick="handleQ('${r}')">${r}</button>`).join('')}</div>`;
+    }
+    if (showActions) {
+      html += `<div class="sz-action-btns">
+        <button class="sz-action-btn sz-wa" onclick="window.open('https://wa.me/923414498408?text=Hi%2C+I+need+a+quote!','_blank')">💬 WhatsApp</button>
+        <button class="sz-action-btn sz-call" onclick="window.open('tel:+923414498408')">📞 Call Now</button>
+      </div>`;
+    }
+    d.innerHTML = html;
+    m.appendChild(d); scrollBottom();
+  }
+
+  function handleQ(val) {
+    addMessage(val, 'user');
+    document.querySelectorAll('.sz-qbtn').forEach(b => b.disabled = true);
+    setTimeout(() => sendToAPI(val), 500);
+  }
+
+  function startChat() {
+    const greeting = "Hello! Welcome to <strong>SoftZilaa</strong> 👋<br><br>I'm your AI sales consultant. Tell me about your project and I'll give you a custom price quote in <strong>USDT</strong>.<br><br>What do you need?";
+    history.push({ role: "assistant", content: "Hello! Welcome to SoftZilaa. I'm your AI sales consultant. Tell me about your project and I'll give you a custom price quote in USDT. What do you need?" });
+    addMessage(greeting, 'bot', ['Website', 'E-Commerce Store', 'Branding/Logo', 'SEO & Marketing', 'AI Automation']);
+  }
+
+  async function sendToAPI(userMsg) {
+    showTyping();
+    history.push({ role: "user", content: userMsg });
+
+    try {
+      const res = await fetch(GROQ_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history })
+      });
+      const data = await res.json();
+      const reply = data.reply || "Sorry, something went wrong. Please contact us directly!";
+      history.push({ role: "assistant", content: reply });
+      const isClosing = reply.toLowerCase().includes("whatsapp") || reply.toLowerCase().includes("call") || reply.toLowerCase().includes("connect");
+      removeTyping();
+      addMessage(reply.replace(/\n/g, '<br>'), 'bot', [], isClosing);
+    } catch(e) {
+      removeTyping();
+      addMessage("Connection error. Please contact us directly!", 'bot', [], true);
+    }
+  }
+
+  document.getElementById('sz-send').onclick = () => {
+    const inp = document.getElementById('sz-input');
+    const val = inp.value.trim();
+    if (!val) return;
+    addMessage(val, 'user');
+    inp.value = '';
+    setTimeout(() => sendToAPI(val), 400);
+  };
+
+  document.getElementById('sz-input').onkeydown = (e) => {
+    if (e.key === 'Enter') document.getElementById('sz-send').click();
+  };
+</script>
+</body>
+</html>
